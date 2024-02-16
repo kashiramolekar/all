@@ -1,0 +1,396 @@
+createbase.js
+
+
+var mysql = require('mysql2');
+var con=mysql.createConnection({
+    host: "127.0.0.1",
+    user: "root",
+    password: ""
+});
+
+con.connect(function(err){
+    if (err) throw err;
+    console.log("Connected!");
+    con.query("CREATE DATABASE feedback",
+    function(err,result){
+        if(err) throw err;
+        console.log("Database created");
+    });
+});
+
+createtable.js
+
+var mysql = require('mysql2');
+var con=mysql.createConnection({
+    host: "127.0.0.1",
+    user: "root",
+    password: "",
+    database: "feedback"
+});
+// Note: The 'rating' field is not included in the 'comments' table creation
+// as it wasn't explicitly mentioned in the provided scenario.
+
+
+con.connect(function(err) {
+  if (err) throw err;
+  console.log("Connected!");
+
+  var createUsersTable = `
+    CREATE TABLE IF NOT EXISTS users (
+      user_id INT AUTO_INCREMENT PRIMARY KEY,
+      username VARCHAR(255) NOT NULL,
+      email VARCHAR(255) NOT NULL
+    );
+  `;
+
+  con.query(createUsersTable, function(err, result) {
+    if (err) throw err;
+    console.log("Users table created");
+  });
+
+  // Create 'posts' table
+  var createPostsTable = `
+    CREATE TABLE IF NOT EXISTS posts (
+      post_id INT AUTO_INCREMENT PRIMARY KEY,
+      title VARCHAR(255) NOT NULL,
+      content TEXT NOT NULL,
+      Rating INT,
+      user_id INT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(user_id)
+    );
+  `;
+
+  con.query(createPostsTable, function(err, result) {
+    if (err) throw err;
+    console.log("Posts table created");
+  });
+
+  // Create 'comments' table
+  var createCommentsTable = `
+    CREATE TABLE IF NOT EXISTS comments (
+      comment_id INT AUTO_INCREMENT PRIMARY KEY,
+      post_id INT,
+      user_id INT,
+      rating INT,
+      comment_text TEXT NOT NULL,
+      FOREIGN KEY (post_id) REFERENCES posts(post_id),
+      FOREIGN KEY (user_id) REFERENCES users(user_id)
+    );
+  `;
+
+  con.query(createCommentsTable, function(err, result) {
+    if (err) throw err;
+    console.log("Comments table created");
+  });
+
+  // Note: The 'rating' field is not included in the 'comments' table creation
+  // as it wasn't explicitly mentioned in the provided scenario.
+
+  con.end();
+});
+
+
+insertrec.js
+
+
+var mysql = require('mysql2');
+
+var con = mysql.createConnection({
+    host: "127.0.0.1",
+    user: "root",
+    password: "",
+    database: "feedback"
+});
+
+con.connect(function(err) {
+    if (err) throw err;
+    console.log("Connected!");
+
+    var insertUsersQuery = `
+        INSERT INTO users ( username, email)
+        VALUES
+        ('J', 'j.d@example.com'),
+        ('A', 'a.@example.com'),
+        ('B', 'b.@example.com'),
+        ('E', 'e.@example.com'),
+        ('M', 'm.@example.com');
+    `;
+
+    con.query(insertUsersQuery, function(err, result) {
+        if (err) throw err;
+       console.log("Inserted 5 records into 'users' table");
+   });
+
+    var insertPostsQuery = `
+        INSERT INTO posts (title, content, user_id, rating)
+        VALUES
+        ('Introduction ', 'Node.jss V8 JavaScript engine.', 1, 1),
+        ('Web ', 'Learn essential tips.', 2,    2),
+        ('Data ', 'Explore the world of data science .', 3, 3),
+        ('Artificial ', 'Discover the latest trends. ', 4, 4),
+        ('Mobile ', 'Strategies .', 5,  5);
+    `;
+
+    con.query(insertPostsQuery, function(err, result) {
+        if (err) throw err;
+        console.log("Inserted 5 records into 'posts' table");
+    });
+
+    var insertCommentsQuery = `
+        INSERT INTO comments (post_id, user_id, rating, comment_text)
+        VALUES
+        (1, 2, 4, 'Great introduction to Node.js!'),
+        (2, 1, 5, 'Very helpful tips for web development.'),
+        (3, 3, 3, 'Interesting insights into data science.'),
+        (4, 4, 2, 'Not impressed with the AI trends.'),
+        (5, 5, 1, 'Looking forward to trying the mobile app development strategies.');
+    `;
+
+    con.query(insertCommentsQuery, function(err, result) {
+        if (err) throw err;
+        console.log("Inserted 5 records into 'comments' table");
+    });
+
+    con.end();
+});
+
+
+
+new.js
+
+var http = require('http');
+var mysql = require('mysql');
+var express = require('express');
+var app = express();
+var bodyParser = require('body-parser');
+var urlencodedParser = bodyParser.urlencoded({ extended: true });
+
+const fs = require('fs');
+
+var con = mysql.createConnection({
+    host: "127.0.0.1",
+    user: "root",
+    password: "",
+    database: "feedback"
+});
+
+// HTML content as a template literal
+const htmlForm = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+   <form action="/thank" method="post">
+    title: <input type='text' name='one' value=''>
+    content: <input type='text' name='two' value=''>
+    rating: <input type='number' name='three' value='2'>
+    user_id: <input type='number' name='four' value='6'>
+
+    <input type='submit' name='t1' value='Submit'>
+   </form>
+
+   <script src="/new.js"></script>
+</body>
+</html>
+`;
+
+app.get('/send', function (req, res) {
+    res.send(htmlForm);
+});
+
+app.post('/thank', urlencodedParser, function (req, res) {
+    var title = req.body.one;
+    var content = req.body.two;
+    var Rating = req.body.three;
+    var user_id = req.body.four;
+    var sql1 = `INSERT INTO posts (title, content, Rating, user_id) values (?, ?, ?, ?)`;
+
+    con.connect(function (err) {
+        if (err) throw err;
+        console.log("Connected");
+    });
+
+    con.query(sql1, [title, content, Rating, user_id], function (err, result) {
+        if (err) throw err;
+        res.write("rec inserted");
+        res.end();
+    });
+}).listen(9001);
+
+
+
+newinsert.html 
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+   <form action="/thank" method="post">
+    title:</title> : <input type='text' name='one' value=''>
+    content : <input type='text' name='two' value=''>
+    rating <input type='number' name='three' value='2'>
+    user_id <input type='number' name='four' value='6'>
+
+    <input type='submit' name='t1' value='Submit'>
+   </form>
+
+   <script src="/newinsert.js"></script>
+
+</body>
+</html>
+
+
+new.js
+
+
+
+var http = require('http');
+var mysql = require('mysql2');
+var express = require('express');
+var app = express();
+var bodyParser = require('body-parser');
+var urlencodedParser = bodyParser.urlencoded({ extended: true });
+
+const fs = require('fs');
+
+var con = mysql.createConnection({
+    host: "127.0.0.1",
+    user: "root",
+    password: "",
+    database: "e1"
+});
+
+// HTML content as a template literal
+const htmlForm = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+   <form action="/thank" method="post">
+    title: <input type='text' name='one' value=''>
+    content: <input type='text' name='two' value=''>
+    rating: <input type='number' name='three' value='2'>
+    user_id: <input type='number' name='four' value='6'>
+
+    <input type='submit' name='t1' value='Submit'>
+   </form>
+
+   <script src="/new.js"></script>
+</body>
+</html>
+`;
+
+app.get('/send', function (req, res) {
+    res.send(htmlForm);
+});
+
+app.post('/thank', urlencodedParser, function (req, res) {
+    var title = req.body.one;
+    var content = req.body.two;
+    var Rating = req.body.three;
+    var user_id = req.body.four;
+    var sql1 = `INSERT INTO posts (title, content, Rating, user_id) values (?, ?, ?, ?)`;
+
+    con.connect(function (err) {
+        if (err) throw err;
+        console.log("Connected");
+    });
+
+    con.query(sql1, [title, content, Rating, user_id], function (err, result) {
+        if (err) throw err;
+        res.write("rec inserted");
+        res.end();
+    });
+}).listen(9001);
+
+posrating.js
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+   <form action="/thank" method="post">
+    <h1> enter details of the comment</h1>
+    Comment_id:<input type='number' name='one' value=''>
+
+    <input type='submit' name='t1' value='Submit'>
+   </form>
+
+   <script src="/positive_rating.js"></script>
+
+</body>
+</html>
+
+
+posrating,js
+
+var http=require('http');
+var mysql=require('mysql');
+var express=require('express');
+var app=express();
+var bodyParser=require('body-parser');
+var urlencodedParser = bodyParser.urlencoded({extended: true});
+const fs=require('fs');
+
+var con = mysql.createConnection({
+    host:"127.0.0.1",
+    user:"root",
+    password:"",
+    database:"feedback"
+});
+
+app.get('/send',function (req,res){
+  fs.readFile('positive_rating.html','utf8',function(err,data)
+  { if(err)throw err;
+     res.send(data);
+  }
+  );
+});
+
+app.post('/thank',urlencodedParser, function(req,res){
+    var comment_id=req.body.one;
+    var sql1=`SELECT
+    comments.comment_text,
+    comments.rating,
+    (SELECT username FROM users WHERE users.user_id = comments.user_id LIMIT 1) AS username
+FROM
+    comments
+WHERE
+    comments.post_id = 1
+    AND comments.rating >= 4;`
+    
+    con.connect(function(err){
+        if(err)throw err;
+        console.log("Connected");
+    });
+    con.query(sql1,[comment_id],function(err,result){
+        if(err)throw err;
+        res.write("rec fetched");
+        res.json(result);
+        console.table(result);
+    });
+    res.write("record fectched");
+    
+    
+    res.end();
+}).listen(9002);
